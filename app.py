@@ -7,20 +7,28 @@ from streamlit_cropper import st_cropper
 
 st.set_page_config(page_title="Гербарий морфометриясы", layout="wide")
 
-# --- БОТАНИКАЛЫҚ ДИЗАЙН (CSS) ---
+# --- АКАДЕМИЯЛЫҚ ДИЗАЙН: TIMES NEW ROMAN, АҚ ЖӘНЕ ҚАРА ЖАСЫЛ ---
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #F4F9F4;
-        color: #102A1E;
+    /* Барлық элементтерге Times New Roman шрифтін орнату */
+    html, body, [class*="css"], .stApp, h1, h2, h3, h4, p, div, span, label, input, button, table {
+        font-family: 'Times New Roman', Times, serif !important;
     }
+    
+    /* Негізгі таза ақ фон */
+    .stApp {
+        background-color: #FFFFFF;
+        color: #111111;
+    }
+    
+    /* Жоғарғы баннер — таза қара жасыл және ақ мәтін */
     .hero-banner {
-        background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #40916C 100%);
-        padding: 2rem 2.5rem;
-        border-radius: 14px;
+        background-color: #1B4332;
+        padding: 1.8rem 2.2rem;
+        border-radius: 10px;
         color: #FFFFFF;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 14px rgba(27, 67, 50, 0.18);
+        border: 1px solid #1B4332;
     }
     .hero-banner h1 {
         color: #FFFFFF !important;
@@ -29,22 +37,29 @@ st.markdown("""
         font-weight: 700;
     }
     .hero-banner p {
-        color: #D8F3DC;
+        color: #FFFFFF;
+        opacity: 0.92;
         margin: 0;
-        font-size: 1.05rem;
+        font-size: 1.1rem;
     }
+    
+    /* Бүйірлік панель — ақ фон, жіңішке жиек */
     section[data-testid="stSidebar"] {
-        background-color: #E6F2E6;
-        border-right: 1px solid #B7E4C7;
+        background-color: #FAFAFA;
+        border-right: 1px solid #E0E0E0;
     }
+    
+    /* Қойындылар (Tabs) — ақ және қара жасыл */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
-        background-color: #E6F2E6;
-        padding: 6px;
-        border-radius: 10px;
+        background-color: #FFFFFF;
+        border-bottom: 2px solid #1B4332;
+        padding-bottom: 6px;
     }
     .stTabs [data-baseweb="tab"] {
-        border-radius: 8px;
+        background-color: #FFFFFF;
+        border: 1px solid #1B4332;
+        border-radius: 6px;
         color: #1B4332;
         font-weight: 600;
         padding: 8px 16px;
@@ -53,26 +68,30 @@ st.markdown("""
         background-color: #1B4332 !important;
         color: #FFFFFF !important;
     }
+    
+    /* Көрсеткіштер карточкасы */
     div[data-testid="stMetric"] {
         background-color: #FFFFFF;
-        border: 1px solid #B7E4C7;
-        border-left: 5px solid #2D6A4F;
+        border: 1px solid #D9D9D9;
+        border-left: 5px solid #1B4332;
         padding: 12px 16px;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        border-radius: 6px;
     }
+    
+    /* Батырмалар */
     .stButton > button, .stDownloadButton > button {
         background-color: #1B4332;
         color: #FFFFFF;
-        border-radius: 8px;
-        border: none;
+        border-radius: 6px;
+        border: 1px solid #1B4332;
         padding: 0.5rem 1.2rem;
         font-weight: 600;
-        transition: all 0.2s ease;
+        font-size: 1rem;
     }
     .stButton > button:hover, .stDownloadButton > button:hover {
-        background-color: #2D6A4F;
+        background-color: #122E22;
         color: #FFFFFF;
+        border-color: #122E22;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -121,7 +140,7 @@ close_gaps = st.sidebar.slider(
 )
 min_area = st.sidebar.number_input("Ұсақ шуды елемеу (пикс²)", min_value=10, value=500, step=100)
 
-# --- НЕГІЗГІ ҚОЙЫНДЫЛАР (ВКЛАДКИ) ---
+# --- НЕГІЗГІ ҚОЙЫНДЫЛАР ---
 tab_batch, tab_single, tab_ruler = st.tabs([
     "Топтық өңдеу және гистограммалар",
     "Жеке жапырақ (Аймақты қию / ROI)",
@@ -173,15 +192,15 @@ def analyze_leaf(img_np, scale_px, use_auto, m_thresh, min_a, open_k, close_k):
     circularity = (4 * np.pi * area_px) / (perim_px ** 2) if perim_px > 0 else 0
     
     result_img = img_np.copy()
-    cv2.drawContours(result_img, [leaf], -1, (27, 130, 75), 3)
-    cv2.drawContours(result_img, [box], 0, (214, 69, 65), 2)
+    cv2.drawContours(result_img, [leaf], -1, (27, 67, 50), 3)       # Қара жасыл контур
+    cv2.drawContours(result_img, [box], 0, (180, 35, 35), 2)       # Жиектеме рамкасы
     
     mid1 = ((box[0] + box[1]) // 2)
     mid2 = ((box[2] + box[3]) // 2)
     mid3 = ((box[1] + box[2]) // 2)
     mid4 = ((box[3] + box[0]) // 2)
-    cv2.line(result_img, tuple(mid1), tuple(mid2), (45, 106, 79), 2)
-    cv2.line(result_img, tuple(mid3), tuple(mid4), (64, 145, 108), 2)
+    cv2.line(result_img, tuple(mid1), tuple(mid2), (27, 67, 50), 2)
+    cv2.line(result_img, tuple(mid3), tuple(mid4), (27, 67, 50), 2)
     
     metrics = {
         "Ауданы (см²)": round(area_cm2, 3),
@@ -261,7 +280,7 @@ with tab_batch:
                 bin_labels = [f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}" for i in range(len(counts))]
                 hist_df = pd.DataFrame({"Аралық": bin_labels, "Үлгілер саны": counts}).set_index("Аралық")
                 
-                st.bar_chart(hist_df, color="#2D6A4F")
+                st.bar_chart(hist_df, color="#1B4332")
             else:
                 st.info("Гистограмма құру үшін кемінде 2 сурет жүктеңіз.")
                 
@@ -282,7 +301,7 @@ with tab_single:
     
     if single_file:
         img_roi = Image.open(single_file).convert("RGB")
-        st.write("Тек өлшенетін жапырақты бөліп алу үшін қою жасыл жақтаудың бұрыштарын жылжытыңыз:")
+        st.write("Тек өлшенетін жапырақты бөліп алу үшін қара жасыл жақтаудың бұрыштарын жылжытыңыз:")
         cropped_img = st_cropper(img_roi, realtime_update=True, box_color="#1B4332", aspect_ratio=None, key="leaf_cropper")
         
         crop_np = np.array(cropped_img)
@@ -314,7 +333,7 @@ with tab_single:
 # ==========================================
 with tab_ruler:
     st.subheader("Суреттегі сызғыш бойынша 1 см-дегі пиксель санын анықтау")
-    st.markdown("1. Кадрда сызғышы бар суретті жүктеңіз.\n2. Жасыл жақтауды сызғыштағы белгілі бір кесінді бойымен созыңыз (мысалы, **0 см-ден 5 см-ге дейін**).\n3. Нақты ұзындықты см-мен енгізіп, **Осы масштабты барлық өлшемдерге қолдану** батырмасын басыңыз.")
+    st.markdown("1. Кадрда сызғышы бар суретті жүктеңіз.\n2. Жақтауды сызғыштағы белгілі бір кесінді бойымен созыңыз (мысалы, **0 см-ден 5 см-ге дейін**).\n3. Нақты ұзындықты см-мен енгізіп, **Осы масштабты барлық өлшемдерге қолдану** батырмасын басыңыз.")
     
     ruler_file = st.file_uploader("Сызғышы бар суретті жүктеңіз", type=["jpg", "jpeg", "png"], key="ruler_uploader")
     
@@ -323,7 +342,7 @@ with tab_ruler:
         rect_coords = st_cropper(
             img_ruler,
             realtime_update=True,
-            box_color="#2D6A4F",
+            box_color="#1B4332",
             aspect_ratio=None,
             return_type="box",
             key="ruler_cropper"
