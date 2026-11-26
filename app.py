@@ -5,9 +5,9 @@ import pandas as pd
 from PIL import Image
 from streamlit_cropper import st_cropper
 
-st.set_page_config(page_title="Herbarium Leaf Morphometry", layout="wide")
+st.set_page_config(page_title="Гербарий морфометриясы", layout="wide")
 
-# --- CUSTOM BOTANICAL CSS STYLING ---
+# --- БОТАНИКАЛЫҚ ДИЗАЙН (CSS) ---
 st.markdown("""
     <style>
     .stApp {
@@ -25,7 +25,7 @@ st.markdown("""
     .hero-banner h1 {
         color: #FFFFFF !important;
         margin: 0 0 0.4rem 0;
-        font-size: 2.1rem;
+        font-size: 2.0rem;
         font-weight: 700;
     }
     .hero-banner p {
@@ -77,58 +77,58 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER BANNER ---
+# --- ЖОҒАРҒЫ БАННЕР ---
 st.markdown("""
     <div class="hero-banner">
-        <h1>Herbarium Leaf Morphometry System</h1>
-        <p>Automated Computer Vision Pipeline for Plant Leaf Trait Extraction, Calibration & Statistical Analysis</p>
+        <h1>Өсімдік жапырақтарының морфологиялық белгілерін автоматтандырылған өлшеу</h1>
+        <p>Гербарий үлгілерінің бейнелері бойынша морфометриялық талдау, калибрлеу және статистикалық өңдеу жүйесі</p>
     </div>
 """, unsafe_allow_html=True)
 
-# Initialize session state
+# Масштаб күйін сақтау
 if "px_per_cm" not in st.session_state:
     st.session_state.px_per_cm = 100.0
 
-# --- SIDEBAR: SETTINGS & MORPHOLOGY CONTROLS ---
-st.sidebar.header("1. Scale Calibration")
+# --- БҮЙІРЛІК ПАНЕЛЬ: БАПТАУЛАР ---
+st.sidebar.header("1. Масштабты калибрлеу")
 px_per_cm = st.sidebar.number_input(
-    "Current scale (pixels per 1 cm)",
+    "Ағымдағы масштаб (1 см-дегі пиксель саны)",
     min_value=1.0,
     value=float(st.session_state.px_per_cm),
     step=1.0,
-    help="Calibrate using the 'Interactive Ruler Calibration' tab or enter manually"
+    help="«Интерактивті сызғыш» қойындысы арқылы өлшеңіз немесе қолмен енгізіңіз"
 )
 st.session_state.px_per_cm = px_per_cm
 
-st.sidebar.header("2. Segmentation & Cleaning")
-auto_thresh = st.sidebar.checkbox("Automatic threshold (Otsu's method)", value=True)
-manual_thresh = st.sidebar.slider("Manual threshold", 0, 255, 180, disabled=auto_thresh)
+st.sidebar.header("2. Сегментация және тазарту")
+auto_thresh = st.sidebar.checkbox("Автоматты табалдырық (Оцу әдісі)", value=True)
+manual_thresh = st.sidebar.slider("Қолмен табалдырық (авто-режим өшірулі болса)", 0, 255, 180, disabled=auto_thresh)
 petiole_kernel = st.sidebar.slider(
-    "Petiole removal / Edge smoothing",
+    "Сағақты алып тастау / жиекті тегістеу",
     min_value=0,
     max_value=25,
     value=0,
     step=2,
-    help="Removes thin stems/petioles to measure only the leaf blade"
+    help="Тек жапырақ тақтасын өлшеу үшін жіңішке сағақты жояды"
 )
 close_gaps = st.sidebar.slider(
-    "Bridge mounting tape gaps",
+    "Жапсырма жолақтардың үзілісін біріктіру",
     min_value=0,
     max_value=25,
     value=0,
     step=2,
-    help="Connects leaf parts separated by herbarium paper strips"
+    help="Гербарий қағазындағы бекіткіш жолақтар бөлген жапырақ бөліктерін қосады"
 )
-min_area = st.sidebar.number_input("Ignore small noise (px2)", min_value=10, value=500, step=100)
+min_area = st.sidebar.number_input("Ұсақ шуды елемеу (пикс²)", min_value=10, value=500, step=100)
 
-# --- MAIN TABS ---
+# --- НЕГІЗГІ ҚОЙЫНДЫЛАР (ВКЛАДКИ) ---
 tab_batch, tab_single, tab_ruler = st.tabs([
-    "Batch Processing & Histograms",
-    "Single Leaf (ROI Crop)",
-    "Interactive Ruler Calibration"
+    "Топтық өңдеу және гистограммалар",
+    "Жеке жапырақ (Аймақты қию / ROI)",
+    "Интерактивті сызғышпен калибрлеу"
 ])
 
-# --- CORE MORPHOMETRY FUNCTION ---
+# --- НЕГІЗГІ МОРФОМЕТРИЯ ФУНКЦИЯСЫ ---
 def analyze_leaf(img_np, scale_px, use_auto, m_thresh, min_a, open_k, close_k):
     gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -184,23 +184,23 @@ def analyze_leaf(img_np, scale_px, use_auto, m_thresh, min_a, open_k, close_k):
     cv2.line(result_img, tuple(mid3), tuple(mid4), (64, 145, 108), 2)
     
     metrics = {
-        "Area (cm2)": round(area_cm2, 3),
-        "Length (cm)": round(length_cm, 2),
-        "Width (cm)": round(width_cm, 2),
-        "Perimeter (cm)": round(perim_cm, 2),
-        "Aspect Ratio (L/W)": round(aspect_ratio, 2),
-        "Circularity (0-1)": round(circularity, 3),
-        "Solidity (0-1)": round(solidity, 3)
+        "Ауданы (см²)": round(area_cm2, 3),
+        "Ұзындығы (см)": round(length_cm, 2),
+        "Ені (см)": round(width_cm, 2),
+        "Периметрі (см)": round(perim_cm, 2),
+        "Созылыңқылық (Ұ/Е)": round(aspect_ratio, 2),
+        "Дөңгелектік (0-1)": round(circularity, 3),
+        "Тұтастық / Solidity (0-1)": round(solidity, 3)
     }
     return metrics, mask, result_img, t_val
 
 # ==========================================
-# TAB 1: BATCH PROCESSING & HISTOGRAMS
+# 1-ҚОЙЫНДЫ: ТОПТЫҚ ӨҢДЕУ ЖӘНЕ ГИСТОГРАММАЛАР
 # ==========================================
 with tab_batch:
-    st.subheader("Batch Herbarium Analysis & Trait Distributions")
+    st.subheader("Гербарий үлгілерін топтық талдау және үлестірім гистограммалары")
     uploaded_files = st.file_uploader(
-        "Upload one or multiple herbarium images (JPG, PNG)",
+        "Бір немесе бірнеше гербарий суретін жүктеңіз (JPG, PNG)",
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True,
         key="batch_uploader"
@@ -218,63 +218,71 @@ with tab_batch:
             )
             
             if metrics:
-                row = {"File Name": file.name, **metrics}
+                row = {"Файл атауы": file.name, **metrics}
                 results_list.append(row)
                 if idx < 4:
                     preview_cols[idx].image(res_img, caption=file.name, use_container_width=True)
             else:
-                st.warning(f"Leaf not detected in: {file.name}")
+                st.warning(f"Мына суреттен жапырақ табылмады: {file.name}")
                 
         if results_list:
             df_batch = pd.DataFrame(results_list)
             
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Specimens Analyzed", len(df_batch))
-            m2.metric("Mean Area", f"{df_batch['Area (cm2)'].mean():.2f} cm2")
-            m3.metric("Mean Length", f"{df_batch['Length (cm)'].mean():.2f} cm")
-            m4.metric("Mean Width", f"{df_batch['Width (cm)'].mean():.2f} cm")
+            m1.metric("Талданған үлгілер", len(df_batch))
+            m2.metric("Орташа ауданы", f"{df_batch['Ауданы (см²)'].mean():.2f} см²")
+            m3.metric("Орташа ұзындығы", f"{df_batch['Ұзындығы (см)'].mean():.2f} см")
+            m4.metric("Орташа ені", f"{df_batch['Ені (см)'].mean():.2f} см")
             
-            st.subheader("Morphometric Measurements Table")
+            st.subheader("Морфометриялық өлшемдер кестесі")
             st.dataframe(df_batch, use_container_width=True)
             
-            st.subheader("Descriptive Statistics (Mean and SD)")
-            stats_df = df_batch.drop(columns=["File Name"]).agg(["mean", "std", "min", "max"]).round(3)
-            stats_df.index = ["Mean", "Std. Dev (SD)", "Min", "Max"]
+            st.subheader("Сипаттамалық статистика (Орташа мән және SD)")
+            stats_df = df_batch.drop(columns=["Файл атауы"]).agg(["mean", "std", "min", "max"]).round(3)
+            stats_df.index = ["Орташа мән (Mean)", "Стандартты ауытқу (SD)", "Минимум (Min)", "Максимум (Max)"]
             st.dataframe(stats_df, use_container_width=True)
             
             if len(df_batch) > 1:
-                st.subheader("Morphological Trait Distributions (Histograms)")
+                st.subheader("Морфологиялық белгілердің үлестірім гистограммасы")
                 metric_to_plot = st.selectbox(
-                    "Select trait to visualize:",
-                    ["Area (cm2)", "Length (cm)", "Width (cm)", "Perimeter (cm)", "Aspect Ratio (L/W)", "Circularity (0-1)", "Solidity (0-1)"]
+                    "График құру үшін белгіні таңдаңыз:",
+                    [
+                        "Ауданы (см²)", 
+                        "Ұзындығы (см)", 
+                        "Ені (см)", 
+                        "Периметрі (см)", 
+                        "Созылыңқылық (Ұ/Е)", 
+                        "Дөңгелектік (0-1)", 
+                        "Тұтастық / Solidity (0-1)"
+                    ]
                 )
                 
                 counts, bin_edges = np.histogram(df_batch[metric_to_plot], bins="auto")
                 bin_labels = [f"{bin_edges[i]:.2f}-{bin_edges[i+1]:.2f}" for i in range(len(counts))]
-                hist_df = pd.DataFrame({"Range": bin_labels, "Sample Count": counts}).set_index("Range")
+                hist_df = pd.DataFrame({"Аралық": bin_labels, "Үлгілер саны": counts}).set_index("Аралық")
                 
                 st.bar_chart(hist_df, color="#2D6A4F")
             else:
-                st.info("Upload 2 or more images to generate distribution histograms.")
+                st.info("Гистограмма құру үшін кемінде 2 сурет жүктеңіз.")
                 
             csv_batch = df_batch.to_csv(index=False).encode("utf-8-sig")
             st.download_button(
-                label="Download Batch Results (CSV / Excel)",
+                label="Топтық нәтижелерді жүктеу (CSV / Excel)",
                 data=csv_batch,
-                file_name="batch_leaf_metrics.csv",
+                file_name="herbarium_batch_metrics.csv",
                 mime="text/csv"
             )
 
 # ==========================================
-# TAB 2: SINGLE LEAF WITH ROI CROP
+# 2-ҚОЙЫНДЫ: ЖЕКЕ ЖАПЫРАҚ (ROI ҚИЮ)
 # ==========================================
 with tab_single:
-    st.subheader("Crop Region of Interest (ROI) to Isolate Target Leaf")
-    single_file = st.file_uploader("Upload herbarium sheet image", type=["jpg", "jpeg", "png"], key="roi_uploader")
+    st.subheader("Затбелгі мен сызғышты алып тастау үшін қажетті аймақты (ROI) қию")
+    single_file = st.file_uploader("Гербарий парағының суретін жүктеңіз", type=["jpg", "jpeg", "png"], key="roi_uploader")
     
     if single_file:
         img_roi = Image.open(single_file).convert("RGB")
-        st.write("Drag the dark green box corners to isolate only the target leaf (excluding labels or scale squares):")
+        st.write("Тек өлшенетін жапырақты бөліп алу үшін қою жасыл жақтаудың бұрыштарын жылжытыңыз:")
         cropped_img = st_cropper(img_roi, realtime_update=True, box_color="#1B4332", aspect_ratio=None, key="leaf_cropper")
         
         crop_np = np.array(cropped_img)
@@ -284,31 +292,31 @@ with tab_single:
         
         if metrics:
             c1, c2, c3 = st.columns(3)
-            c1.image(cropped_img, caption="1. Cropped ROI", use_container_width=True)
-            c2.image(mask, caption="2. Binary Leaf Mask", use_container_width=True)
-            c3.image(res_img, caption="3. Contour, Bounding Box & Axes", use_container_width=True)
+            c1.image(cropped_img, caption="1. Қиып алынған аймақ (ROI)", use_container_width=True)
+            c2.image(mask, caption="2. Бинарлы маска (Фон / Жапырақ)", use_container_width=True)
+            c3.image(res_img, caption="3. Контур, жиектеме және осьтер", use_container_width=True)
             
-            df_single = pd.DataFrame([{"File Name": single_file.name, **metrics}])
+            df_single = pd.DataFrame([{"Файл атауы": single_file.name, **metrics}])
             st.dataframe(df_single, use_container_width=True)
             
             csv_single = df_single.to_csv(index=False).encode("utf-8-sig")
             st.download_button(
-                label="Download Leaf Metrics (CSV)",
+                label="Өлшем нәтижелерін жүктеу (CSV)",
                 data=csv_single,
                 file_name=f"roi_{single_file.name.split('.')[0]}.csv",
                 mime="text/csv"
             )
         else:
-            st.warning("No leaf detected in the selected area. Try adjusting threshold settings in the sidebar.")
+            st.warning("Таңдалған аймақтан жапырақ табылмады. Бүйірлік панельдегі табалдырық мәнін өзгертіп көріңіз.")
 
 # ==========================================
-# TAB 3: INTERACTIVE RULER CALIBRATION
+# 3-ҚОЙЫНДЫ: ИНТЕРАКТИВТІ СЫЗҒЫШПЕН КАЛИБРЛЕУ
 # ==========================================
 with tab_ruler:
-    st.subheader("Calibrate Scale Using a Ruler or Reference Marker")
-    st.markdown("1. Upload a photo containing a ruler or scale bar.\n2. Align the green box along the known distance.\n3. Enter the real length in cm and click **Apply This Scale to All Measurements**.")
+    st.subheader("Суреттегі сызғыш бойынша 1 см-дегі пиксель санын анықтау")
+    st.markdown("1. Кадрда сызғышы бар суретті жүктеңіз.\n2. Жасыл жақтауды сызғыштағы белгілі бір кесінді бойымен созыңыз (мысалы, **0 см-ден 5 см-ге дейін**).\n3. Нақты ұзындықты см-мен енгізіп, **Осы масштабты барлық өлшемдерге қолдану** батырмасын басыңыз.")
     
-    ruler_file = st.file_uploader("Upload image with a ruler", type=["jpg", "jpeg", "png"], key="ruler_uploader")
+    ruler_file = st.file_uploader("Сызғышы бар суретті жүктеңіз", type=["jpg", "jpeg", "png"], key="ruler_uploader")
     
     if ruler_file:
         img_ruler = Image.open(ruler_file).convert("RGB")
@@ -326,11 +334,11 @@ with tab_ruler:
         measured_px = max(box_w, box_h)
         
         col_r1, col_r2 = st.columns(2)
-        real_cm = col_r1.number_input("Real length of selected segment (cm):", min_value=0.1, value=1.0, step=0.5)
+        real_cm = col_r1.number_input("Таңдалған кесіндінің нақты ұзындығы (см):", min_value=0.1, value=1.0, step=0.5)
         calculated_scale = measured_px / real_cm
         
-        col_r2.metric("Calculated Scale", f"{calculated_scale:.2f} px / cm", help=f"Measured {measured_px} pixels across {real_cm} cm")
+        col_r2.metric("Есептелген масштаб", f"{calculated_scale:.2f} пикс / см", help=f"{real_cm} см аралықта {measured_px} пиксель өлшенді")
         
-        if st.button("Apply This Scale to All Measurements"):
+        if st.button("Осы масштабты барлық өлшемдерге қолдану"):
             st.session_state.px_per_cm = round(calculated_scale, 2)
             st.rerun()
