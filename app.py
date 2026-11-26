@@ -2,7 +2,7 @@ import streamlit as st
 import cv2
 import numpy as np
 import pandas as pd
-from PIL import Image, ImageDraw
+from PIL import Image
 from streamlit_cropper import st_cropper
 
 st.set_page_config(page_title="Herbarium Leaf Morphometry", layout="wide")
@@ -10,12 +10,10 @@ st.set_page_config(page_title="Herbarium Leaf Morphometry", layout="wide")
 # --- CUSTOM BOTANICAL CSS STYLING ---
 st.markdown("""
     <style>
-    /* Main background and text */
     .stApp {
         background-color: #F4F9F4;
         color: #102A1E;
     }
-    /* Top Botanical Hero Banner */
     .hero-banner {
         background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #40916C 100%);
         padding: 2rem 2.5rem;
@@ -35,12 +33,10 @@ st.markdown("""
         margin: 0;
         font-size: 1.05rem;
     }
-    /* Sidebar styling */
     section[data-testid="stSidebar"] {
         background-color: #E6F2E6;
         border-right: 1px solid #B7E4C7;
     }
-    /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
         background-color: #E6F2E6;
@@ -57,7 +53,6 @@ st.markdown("""
         background-color: #1B4332 !important;
         color: #FFFFFF !important;
     }
-    /* Cards and metric boxes */
     div[data-testid="stMetric"] {
         background-color: #FFFFFF;
         border: 1px solid #B7E4C7;
@@ -66,7 +61,6 @@ st.markdown("""
         border-radius: 10px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
-    /* Primary buttons */
     .stButton > button, .stDownloadButton > button {
         background-color: #1B4332;
         color: #FFFFFF;
@@ -91,38 +85,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- GENERATE BUILT-IN SAMPLE HERBARIUM IMAGES ---
-@st.cache_data
-def create_sample_specimens():
-    samples = {}
-    
-    # Sample 1: Ovate leaf with stem and 1cm reference square
-    img1 = Image.new("RGB", (600, 450), (246, 243, 232))  # Warm herbarium paper color
-    draw1 = ImageDraw.Draw(img1)
-    # Draw 1x1 cm reference square (100x100 px) in corner
-    draw1.rectangle([30, 30, 130, 130], fill=(20, 20, 20))
-    # Draw leaf blade + petiole
-    draw1.ellipse([180, 90, 440, 330], fill=(58, 95, 50))
-    draw1.rectangle([302, 320, 318, 410], fill=(75, 90, 45))
-    samples["Sample_1_Ovate_Leaf.png"] = img1
-
-    # Sample 2: Lanceolate (elongated) leaf
-    img2 = Image.new("RGB", (600, 450), (244, 241, 228))
-    draw2 = ImageDraw.Draw(img2)
-    draw2.ellipse([230, 50, 370, 380], fill=(45, 82, 42))
-    draw2.rectangle([295, 370, 305, 425], fill=(65, 80, 40))
-    samples["Sample_2_Lanceolate_Leaf.png"] = img2
-
-    # Sample 3: Broad Cordate/Orbicular leaf
-    img3 = Image.new("RGB", (600, 450), (247, 244, 235))
-    draw3 = ImageDraw.Draw(img3)
-    draw3.ellipse([150, 80, 450, 360], fill=(68, 105, 55))
-    samples["Sample_3_Broad_Leaf.png"] = img3
-
-    return samples
-
-sample_images = create_sample_specimens()
-
 # Initialize session state
 if "px_per_cm" not in st.session_state:
     st.session_state.px_per_cm = 100.0
@@ -134,7 +96,7 @@ px_per_cm = st.sidebar.number_input(
     min_value=1.0,
     value=float(st.session_state.px_per_cm),
     step=1.0,
-    help="Calibrate using the 'Interactive Ruler' tab or enter manually"
+    help="Calibrate using the 'Interactive Ruler Calibration' tab or enter manually"
 )
 st.session_state.px_per_cm = px_per_cm
 
@@ -160,11 +122,10 @@ close_gaps = st.sidebar.slider(
 min_area = st.sidebar.number_input("Ignore small noise (px2)", min_value=10, value=500, step=100)
 
 # --- MAIN TABS ---
-tab_batch, tab_single, tab_ruler, tab_gallery = st.tabs([
+tab_batch, tab_single, tab_ruler = st.tabs([
     "Batch Processing & Histograms",
     "Single Leaf (ROI Crop)",
-    "Interactive Ruler Calibration",
-    "Demo Herbarium Gallery"
+    "Interactive Ruler Calibration"
 ])
 
 # --- CORE MORPHOMETRY FUNCTION ---
@@ -178,12 +139,10 @@ def analyze_leaf(img_np, scale_px, use_auto, m_thresh, min_a, open_k, close_k):
         t_val = m_thresh
         _, mask = cv2.threshold(blurred, m_thresh, 255, cv2.THRESH_BINARY_INV)
         
-    # Morphological closing (bridges paper tape gaps)
     if close_k > 0:
         k_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (close_k, close_k))
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, k_close)
         
-    # Morphological opening (removes thin petioles/stems)
     if open_k > 0:
         k_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (open_k, open_k))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, k_open)
@@ -198,12 +157,10 @@ def analyze_leaf(img_np, scale_px, use_auto, m_thresh, min_a, open_k, close_k):
     area_px = cv2.contourArea(leaf)
     perim_px = cv2.arcLength(leaf, True)
     
-    # Convex hull for Solidity index
     hull = cv2.convexHull(leaf)
     hull_area = cv2.contourArea(hull)
     solidity = area_px / hull_area if hull_area > 0 else 0
     
-    # Rotated bounding box
     rect = cv2.minAreaRect(leaf)
     box = np.int32(cv2.boxPoints(rect))
     (cx, cy), (w_px, h_px), angle = rect
@@ -215,12 +172,10 @@ def analyze_leaf(img_np, scale_px, use_auto, m_thresh, min_a, open_k, close_k):
     aspect_ratio = length_cm / width_cm if width_cm > 0 else 0
     circularity = (4 * np.pi * area_px) / (perim_px ** 2) if perim_px > 0 else 0
     
-    # Visualization with botanical color scheme
     result_img = img_np.copy()
-    cv2.drawContours(result_img, [leaf], -1, (27, 130, 75), 3)     # Deep emerald contour
-    cv2.drawContours(result_img, [box], 0, (214, 69, 65), 2)       # Crisp red bounding box
+    cv2.drawContours(result_img, [leaf], -1, (27, 130, 75), 3)
+    cv2.drawContours(result_img, [box], 0, (214, 69, 65), 2)
     
-    # Draw major & minor axes across bounding box midpoints
     mid1 = ((box[0] + box[1]) // 2)
     mid2 = ((box[2] + box[3]) // 2)
     mid3 = ((box[1] + box[2]) // 2)
@@ -244,45 +199,35 @@ def analyze_leaf(img_np, scale_px, use_auto, m_thresh, min_a, open_k, close_k):
 # ==========================================
 with tab_batch:
     st.subheader("Batch Herbarium Analysis & Trait Distributions")
-    
-    use_demo_batch = st.checkbox("Use built-in demo herbarium samples (for testing without files)", value=True)
     uploaded_files = st.file_uploader(
-        "Or upload your own herbarium images (JPG, PNG)",
+        "Upload one or multiple herbarium images (JPG, PNG)",
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True,
         key="batch_uploader"
     )
     
-    images_to_process = []
     if uploaded_files:
-        for f in uploaded_files:
-            images_to_process.append((f.name, Image.open(f).convert("RGB")))
-    elif use_demo_batch:
-        for name, img in sample_images.items():
-            images_to_process.append((name, img))
-            
-    if images_to_process:
         results_list = []
-        preview_cols = st.columns(min(len(images_to_process), 4))
+        preview_cols = st.columns(min(len(uploaded_files), 4))
         
-        for idx, (fname, img) in enumerate(images_to_process):
+        for idx, file in enumerate(uploaded_files):
+            img = Image.open(file).convert("RGB")
             img_np = np.array(img)
             metrics, _, res_img, _ = analyze_leaf(
                 img_np, px_per_cm, auto_thresh, manual_thresh, min_area, petiole_kernel, close_gaps
             )
             
             if metrics:
-                row = {"File Name": fname, **metrics}
+                row = {"File Name": file.name, **metrics}
                 results_list.append(row)
                 if idx < 4:
-                    preview_cols[idx].image(res_img, caption=fname, use_container_width=True)
+                    preview_cols[idx].image(res_img, caption=file.name, use_container_width=True)
             else:
-                st.warning(f"Leaf not detected in: {fname}")
+                st.warning(f"Leaf not detected in: {file.name}")
                 
         if results_list:
             df_batch = pd.DataFrame(results_list)
             
-            # Highlight KPI summary metrics
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Specimens Analyzed", len(df_batch))
             m2.metric("Mean Area", f"{df_batch['Area (cm2)'].mean():.2f} cm2")
@@ -309,6 +254,8 @@ with tab_batch:
                 hist_df = pd.DataFrame({"Range": bin_labels, "Sample Count": counts}).set_index("Range")
                 
                 st.bar_chart(hist_df, color="#2D6A4F")
+            else:
+                st.info("Upload 2 or more images to generate distribution histograms.")
                 
             csv_batch = df_batch.to_csv(index=False).encode("utf-8-sig")
             st.download_button(
@@ -327,90 +274,63 @@ with tab_single:
     
     if single_file:
         img_roi = Image.open(single_file).convert("RGB")
-        fname_roi = single_file.name
-    else:
-        st.info("Showing built-in demo specimen (Sample 1 with 1x1 cm scale marker). Upload your own file above to replace.")
-        img_roi = sample_images["Sample_1_Ovate_Leaf.png"]
-        fname_roi = "Sample_1_Ovate_Leaf.png"
+        st.write("Drag the dark green box corners to isolate only the target leaf (excluding labels or scale squares):")
+        cropped_img = st_cropper(img_roi, realtime_update=True, box_color="#1B4332", aspect_ratio=None, key="leaf_cropper")
         
-    st.write("Drag the dark green box corners to isolate only the target leaf (excluding labels or scale squares):")
-    cropped_img = st_cropper(img_roi, realtime_update=True, box_color="#1B4332", aspect_ratio=None, key="leaf_cropper")
-    
-    crop_np = np.array(cropped_img)
-    metrics, mask, res_img, t_val = analyze_leaf(
-        crop_np, px_per_cm, auto_thresh, manual_thresh, min_area, petiole_kernel, close_gaps
-    )
-    
-    if metrics:
-        c1, c2, c3 = st.columns(3)
-        c1.image(cropped_img, caption="1. Cropped ROI", use_container_width=True)
-        c2.image(mask, caption="2. Binary Leaf Mask", use_container_width=True)
-        c3.image(res_img, caption="3. Contour, Bounding Box & Axes", use_container_width=True)
-        
-        df_single = pd.DataFrame([{"File Name": fname_roi, **metrics}])
-        st.dataframe(df_single, use_container_width=True)
-        
-        csv_single = df_single.to_csv(index=False).encode("utf-8-sig")
-        st.download_button(
-            label="Download Leaf Metrics (CSV)",
-            data=csv_single,
-            file_name=f"roi_{fname_roi.split('.')[0]}.csv",
-            mime="text/csv"
+        crop_np = np.array(cropped_img)
+        metrics, mask, res_img, t_val = analyze_leaf(
+            crop_np, px_per_cm, auto_thresh, manual_thresh, min_area, petiole_kernel, close_gaps
         )
-    else:
-        st.warning("No leaf detected in the selected area. Try adjusting threshold settings in the sidebar.")
+        
+        if metrics:
+            c1, c2, c3 = st.columns(3)
+            c1.image(cropped_img, caption="1. Cropped ROI", use_container_width=True)
+            c2.image(mask, caption="2. Binary Leaf Mask", use_container_width=True)
+            c3.image(res_img, caption="3. Contour, Bounding Box & Axes", use_container_width=True)
+            
+            df_single = pd.DataFrame([{"File Name": single_file.name, **metrics}])
+            st.dataframe(df_single, use_container_width=True)
+            
+            csv_single = df_single.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                label="Download Leaf Metrics (CSV)",
+                data=csv_single,
+                file_name=f"roi_{single_file.name.split('.')[0]}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.warning("No leaf detected in the selected area. Try adjusting threshold settings in the sidebar.")
 
 # ==========================================
 # TAB 3: INTERACTIVE RULER CALIBRATION
 # ==========================================
 with tab_ruler:
     st.subheader("Calibrate Scale Using a Ruler or Reference Marker")
-    st.markdown("1. Upload a photo containing a ruler (or use the demo specimen with a 1x1 cm black reference square).\n2. Align the green box along the known distance.\n3. Enter the real length in cm and click **Apply This Scale to All Measurements**.")
+    st.markdown("1. Upload a photo containing a ruler or scale bar.\n2. Align the green box along the known distance.\n3. Enter the real length in cm and click **Apply This Scale to All Measurements**.")
     
     ruler_file = st.file_uploader("Upload image with a ruler", type=["jpg", "jpeg", "png"], key="ruler_uploader")
     
     if ruler_file:
         img_ruler = Image.open(ruler_file).convert("RGB")
-    else:
-        img_ruler = sample_images["Sample_1_Ovate_Leaf.png"]
+        rect_coords = st_cropper(
+            img_ruler,
+            realtime_update=True,
+            box_color="#2D6A4F",
+            aspect_ratio=None,
+            return_type="box",
+            key="ruler_cropper"
+        )
         
-    rect_coords = st_cropper(
-        img_ruler,
-        realtime_update=True,
-        box_color="#2D6A4F",
-        aspect_ratio=None,
-        return_type="box",
-        key="ruler_cropper"
-    )
-    
-    box_w = rect_coords["width"]
-    box_h = rect_coords["height"]
-    measured_px = max(box_w, box_h)
-    
-    col_r1, col_r2 = st.columns(2)
-    real_cm = col_r1.number_input("Real length of selected segment (cm):", min_value=0.1, value=1.0, step=0.5)
-    calculated_scale = measured_px / real_cm
-    
-    col_r2.metric("Calculated Scale", f"{calculated_scale:.2f} px / cm", help=f"Measured {measured_px} pixels across {real_cm} cm")
-    
-    if st.button("Apply This Scale to All Measurements"):
-        st.session_state.px_per_cm = round(calculated_scale, 2)
-        st.rerun()
-
-# ==========================================
-# TAB 4: DEMO HERBARIUM GALLERY
-# ==========================================
-with tab_gallery:
-    st.subheader("Reference Herbarium Specimen Gallery")
-    st.write("Visual guide to leaf morphotypes and built-in test specimens available in the system:")
-    
-    g1, g2, g3 = st.columns(3)
-    with g1:
-        st.image(sample_images["Sample_1_Ovate_Leaf.png"], caption="Type I: Ovate Leaf + 1x1 cm Reference Square", use_container_width=True)
-        st.caption("Used to test ROI cropping (excluding the black 1x1 cm scale square) and petiole removal.")
-    with g2:
-        st.image(sample_images["Sample_2_Lanceolate_Leaf.png"], caption="Type II: Lanceolate (Elongated) Leaf", use_container_width=True)
-        st.caption("High Aspect Ratio (L/W > 2.5) and lower Circularity index.")
-    with g3:
-        st.image(sample_images["Sample_3_Broad_Leaf.png"], caption="Type III: Broad Orbicular Leaf", use_container_width=True)
-        st.caption("Low Aspect Ratio (~1.1) and high Circularity index (close to 0.90).")
+        box_w = rect_coords["width"]
+        box_h = rect_coords["height"]
+        measured_px = max(box_w, box_h)
+        
+        col_r1, col_r2 = st.columns(2)
+        real_cm = col_r1.number_input("Real length of selected segment (cm):", min_value=0.1, value=1.0, step=0.5)
+        calculated_scale = measured_px / real_cm
+        
+        col_r2.metric("Calculated Scale", f"{calculated_scale:.2f} px / cm", help=f"Measured {measured_px} pixels across {real_cm} cm")
+        
+        if st.button("Apply This Scale to All Measurements"):
+            st.session_state.px_per_cm = round(calculated_scale, 2)
+            st.rerun()
